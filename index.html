@@ -10,6 +10,28 @@
         <h1>Хамӑр ял</h1>
     </header>
     <img src="picture.png" alt="">
+    <script>
+                    function setup() {
+            L = 400;
+            createCanvas(400, 400);
+            }
+
+            function draw() {
+            x = 0;
+            background(220);
+                while(x < L) {
+                y = 25*sin((x + frameCount)/45);
+                
+                stroke(255);
+                line(x, 150 + y, x, 200 + y);
+                stroke(0,0,255);
+                line(x, 201 + y, x, 251 + y);
+                stroke(255,0,0);
+                line(x, 252 + y, x, 302 + y);
+                x++;
+            }
+            }
+    </script>
     <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.59/build/spline-viewer.js"></script>
     <spline-viewer url="undefined"></spline-viewer>
     <nav>
