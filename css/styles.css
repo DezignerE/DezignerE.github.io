@@ -2,14 +2,21 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #ffffff;
+    background-color: #000000;
 }
 
 header {
-    background-color: #000;
-    color: #25ff11c9;
+
+    background-color: #000000;
+    color: #fff;
     padding: 1em 0;
     text-align: center;
+    .myclass {
+        font-size: 30px;
+    }
+    .textcolor01{
+        color: blue;
+    }
 }
 
 nav ul {
@@ -21,6 +28,7 @@ nav ul {
 
 nav ul li {
     float: left;
+
 }
 
 nav ul li a {
@@ -37,10 +45,11 @@ nav ul li a:hover {
 
 main {
     padding: 1em;
+    color: rgb(255, 255, 255);
 }
 
 footer {
-    background-color: #000000;
+    background-color: #a7a7a7;
     color: #fff;
     text-align: center;
     padding: 1em 0;
