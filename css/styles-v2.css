@@ -1,0 +1,59 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #000000;
+}
+
+header {
+
+    background-color: #000000;
+    color: #fff;
+    padding: 1em 0;
+    text-align: center;
+    .myclass {
+        font-size: 30px;
+    }
+    .textcolor01{
+        color: blue;
+    }
+}
+
+nav ul {
+    list-style-type: none;
+    padding: 0;
+    background-color: #741c1c;
+    overflow: hidden;
+}
+
+nav ul li {
+    float: left;
+
+}
+
+nav ul li a {
+    display: block;
+    color: rgb(255, 255, 255);
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+nav ul li a:hover {
+    background-color: #d11783;
+}
+
+main {
+    padding: 1em;
+    color: rgb(255, 255, 255);
+}
+
+footer {
+    background-color: #a7a7a7;
+    color: #fff;
+    text-align: center;
+    padding: 1em 0;
+    position: fixed;
+    width: 100%;
+    bottom: 0;
+}
