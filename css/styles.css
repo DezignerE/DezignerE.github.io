@@ -1,6 +1,6 @@
 body {
     font-family: Arial, sans-serif;
-    margin: 0;
+    margin: 0; /*Сброс стандартных стилей браузера*/
     padding: 0;
     background-color: #000000;
 
