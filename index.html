@@ -3,6 +3,7 @@
     <head>  <!--служебная инфа для браузера. Тут размещаем Title, подключаем скрипты, стили Css, метаданные -->
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="css/styles.css">
         <title>Super site</title>
        <!-- <link rel="stylesheet" type="text/css" href="css/normalize.css"> <!--Нормолайз надо ставить перед другим CSS файлом, чтобы тот не перебивал-->
        <!-- <link rel="stylesheet" type="text/css" href="css/styles.css">> -->
@@ -14,7 +15,7 @@
 
     <body>  <!--Тут основная ифна на сайте: Заголовки, тексты и т.д.-->> 
         <header>
-            <h1 id="toppage">КРЫША</h1>  <!-- H1 заголовок должен быть только 1, чтоб сайт лучше работал для поисковой оптимизации -->
+            <h1 id="toppage" class="titletext">КРЫША</h1>  <!-- H1 заголовок должен быть только 1, чтоб сайт лучше работал для поисковой оптимизации -->
             <hr>
             <a href="https://dezignere.github.io/pages/about.html" title="About Me">About Me</a> <!--Это внутрення ссылка-->
             <a href="https://dezignere.github.io/pages/page_05.html" title="page_05">LayOut</a>
@@ -64,14 +65,15 @@
         
         <main>
             <section>
-                <h2>Генеративные шары</h2>
-                <p title="Нужно нажимать на кнопки">Нажми кнопк, чтобы сохранить</p>
-               
+                <div class="generative_balls">
+                    <h2>Генеративные шары</h2>
+                    <p title="Нужно нажимать на кнопки">Нажми кнопку, чтобы сохранить картинку</p>
+                 </div>
             </section>
         </main>
         <footer>
 
-
+            <hr>
             <a href="#toppage" title="В самый верх">Вверх страницы</a> <!-- Ссылка-якорь-->
             <a href="https://vk.com" title="Переход на ВК">Соцсети</a> <!--Внешняя ссылка-->
             <p>&#10054; 2025 supersvistoperdyaschiysite</p> <!-- Тэг параграфа -->

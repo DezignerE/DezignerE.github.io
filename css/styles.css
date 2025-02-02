@@ -3,6 +3,12 @@ body {
     margin: 0;
     padding: 0;
     background-color: #000000;
+
+   
+}
+
+.generative_balls {
+    text-align: center;
 }
 
 header {
@@ -17,31 +23,14 @@ header {
     .textcolor01{
         color: blue;
     }
+
+    h1 {
+        text-align: center;
+        
+    }
 }
 
-nav ul {
-    list-style-type: none;
-    padding: 0;
-    background-color: #741c1c;
-    overflow: hidden;
-}
 
-nav ul li {
-    float: left;
-
-}
-
-nav ul li a {
-    display: block;
-    color: rgb(255, 255, 255);
-    text-align: center;
-    padding: 14px 16px;
-    text-decoration: none;
-}
-
-nav ul li a:hover {
-    background-color: #d11783;
-}
 
 main {
     padding: 1em;
@@ -49,7 +38,7 @@ main {
 }
 
 footer {
-    background-color: #a7a7a7;
+    background-color: #000000;
     color: #fff;
     text-align: center;
     padding: 1em 0;
