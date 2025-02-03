@@ -12,16 +12,27 @@ body {
 }
 
 .balls {
-    position: center;
+    margin: -10 ;
+    padding: 0;
+    /* position: absolute; */
+
+    /* position: center; */
     text-align: center;
 }
 
 .header {
+    width: 100%;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+
+    position: absolute;
     /* position: fixed; */
-    background-color: #000000;
+    background-color: transparent;
     margin: 0;
     color: #fff;
-    padding: 1em 0;
+    padding: 1em;
     text-align: center;
     .myclass {
         font-size: 20px;
@@ -34,6 +45,17 @@ body {
         text-align: center;
         
     }
+}
+
+.header2 {
+ 
+    a {
+        text-decoration: none;
+        color: #fff;
+        display: inline-flex;
+        padding: .5em;
+      }
+    
 }
 
 
