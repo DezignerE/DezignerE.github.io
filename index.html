@@ -14,27 +14,40 @@
    
 
 
-    <body>  <!--Тут основная ифна на сайте: Заголовки, тексты и т.д.-->> 
+    <body> 
         <header>
-            <h1 id="toppage" class="titletext">КРЫША</h1>  <!-- H1 заголовок должен быть только 1, чтоб сайт лучше работал для поисковой оптимизации -->
-            <hr>
-            <a href="https://dezignere.github.io/pages/about.html" title="About Me">About Me</a> <!--Это внутрення ссылка-->
-            <a href="https://dezignere.github.io/pages/layout.html" title="layout">LayOut</a>
-            <a href="https://dezignere.github.io/pages/snowing.html" title="snowing">Snowing</a>
-            <a href="https://dezignere.github.io/pages/gamepage.html" title="gamepage">game</a>
-
-            <p class="myclass textcolor01">параграф текст</p>
-    
-            <script>
-                
+            <div class="header">
+                <h1 id="toppage" class="titletext">КРЫША</h1> 
             
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.2/p5.min.js" integrity="sha512-1YMgn4j8cIL91s14ByDGmHtBU6+F8bWOMcF47S0cRO3QNm8SKPNexy4s3OCim9fABUtO++nJMtcpWbINWjMSzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-                <script>
+                <a href="https://dezignere.github.io/pages/about.html" title="About Me">About Me</a> 
+                <a href="https://dezignere.github.io/pages/layout.html" title="layout">LayOut</a>
+                <a href="https://dezignere.github.io/pages/snowing.html" title="snowing">Snowing</a>
+                <a href="https://dezignere.github.io/pages/gamepage.html" title="gamepage">game</a>
+                
+             </div>
+            
+        </header>
+             
+    
+        
+        <main class="balls">
+
+            <iframe src='https://my.spline.design/chips-19b7164db516d5ed0b4044980ca10b6d/' frameborder='0' width='100%' height='550'></iframe>
+
+            <img src="images/picture.png" alt="">
+
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.2/p5.min.js" integrity="sha512-1YMgn4j8cIL91s14ByDGmHtBU6+F8bWOMcF47S0cRO3QNm8SKPNexy4s3OCim9fABUtO++nJMtcpWbINWjMSzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>      
+
+            <script >
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.2/p5.min.js" integrity="sha512-1YMgn4j8cIL91s14ByDGmHtBU6+F8bWOMcF47S0cRO3QNm8SKPNexy4s3OCim9fABUtO++nJMtcpWbINWjMSzQ==" crossorigin="anonymous" referrerpolicy="no-referrer">
+                </script>
+
+                <script >
                                     function setup() {
-                        createCanvas(windowWidth, windowHeight/2);
+                        createCanvas(windowWidth/2, windowHeight/2);
                         background(0);
                         let saveButton = createButton("save jpg");
-                        saveButton.position(10, height+400);
+                        saveButton.position(200, height+1300);
                           saveButton.mousePressed(saveArt);
                         }
         
@@ -48,23 +61,9 @@
         
                         function saveArt() {
                             save("myCanvas.jpg");
-                        }
-                  
+                        }    
                 </script>
-    
-                
-    
-        </header>
-       
 
-        <img src="images/picture.png" alt="">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.2/p5.min.js" integrity="sha512-1YMgn4j8cIL91s14ByDGmHtBU6+F8bWOMcF47S0cRO3QNm8SKPNexy4s3OCim9fABUtO++nJMtcpWbINWjMSzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-      
-
-        <iframe src='https://my.spline.design/untitled-2c2fa0cfd55592a49157777b2be62544/' frameborder='0' width='1000' height='500'></iframe>
-    
-        
-        <main>
             <section>
                 <div class="generative_balls">
                     <h2>Генеративные шары</h2>
@@ -73,12 +72,15 @@
             </section>
         </main>
         <footer>
-
+            
             <hr>
             <a href="#toppage" title="В самый верх">Вверх страницы</a> <!-- Ссылка-якорь-->
-            <a href="https://vk.com" title="Переход на ВК">Соцсети</a> <!--Внешняя ссылка-->
-            <p>&#10054; 2025 supersvistoperdyaschiysite</p> <!-- Тэг параграфа -->
+                   <address>
+                      <a href="https://vk.com" title="Переход на ВК">Соцсети</a>
+                   </address>
+            <p>&#10054; 2025 supersvistoperdyaschiysite</p> 
         </footer>
+         
     </body>
 </html>
 
