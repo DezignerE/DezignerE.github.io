@@ -9,6 +9,42 @@
 
 <body>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.2/p5.min.js" integrity="sha512-1YMgn4j8cIL91s14ByDGmHtBU6+F8bWOMcF47S0cRO3QNm8SKPNexy4s3OCim9fABUtO++nJMtcpWbINWjMSzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>      
+
+    <script >
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.2/p5.min.js" integrity="sha512-1YMgn4j8cIL91s14ByDGmHtBU6+F8bWOMcF47S0cRO3QNm8SKPNexy4s3OCim9fABUtO++nJMtcpWbINWjMSzQ==" crossorigin="anonymous" referrerpolicy="no-referrer">
+        </script>
+
+        <script >
+                            function setup() {
+                createCanvas(windowWidth/2, windowHeight/2);
+                background(0);
+                let saveButton = createButton("save jpg");
+                saveButton.position(200, height+1300);
+                  saveButton.mousePressed(saveArt);
+                }
+
+                function draw() {
+                noStroke();
+                fill(random(255),random(255),random(255),random(50,255))
+                circle(random(width),random(height),random(150));
+                
+                }
+
+
+                function saveArt() {
+                    save("myCanvas.jpg");
+                }    
+        </script>
+
+    <section>
+        <div class="generative_balls">
+            <h2>Генеративные шары</h2>
+            <p title="Нужно нажимать на кнопки">Нажми кнопку, чтобы сохранить картинку</p>
+         </div>
+    </section>
+
     <h1>Super</h1>
     <p>Мелкий дексриптор</p>
     <hr>
