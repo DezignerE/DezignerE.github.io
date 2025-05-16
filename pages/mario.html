@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mario-подобный платформер</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #6b8cff;
+            font-family: Arial, sans-serif;
+            touch-action: manipulation;
+        }
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(to bottom, #6b8cff, #87CEEB);
+            margin: 0 auto;
+        }
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+        }
+        .btn {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            user-select: none;
+        }
+        #gameInfo {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 18px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        #startScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 100;
+        }
+        #startButton {
+            padding: 10px 20px;
+            background: #ff5252;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 20px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="startScreen">
+        <h1>Платформер</h1>
+        <p>Собери все монеты и дойди до флага!</p>
+        <button id="startButton">Начать игру</button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="gameInfo">Уровень: 1 | Монеты: 0</div>
+    <div id="controls">
+        <div class="btn" id="leftBtn">←</div>
+        <div class="btn" id="jumpBtn">↑</div>
+        <div class="btn" id="rightBtn">→</div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
