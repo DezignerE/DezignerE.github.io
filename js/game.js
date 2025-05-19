@@ -222,12 +222,12 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (levelNum === 3) {
             // Уровень 3 (космос)
             platforms = [
-                {x: 0, y: 350, width: 100, height: 20, color: '#8e44ad'},
-                {x: 150, y: 300, width: 100, height: 20, color: '#8e44ad'},
-                {x: 300, y: 250, width: 100, height: 20, color: '#8e44ad'},
-                {x: 450, y: 200, width: 100, height: 20, color: '#8e44ad'},
-                {x: 600, y: 150, width: 100, height: 20, color: '#8e44ad'},
-                {x: 700, y: 250, width: 100, height: 20, color: '#8e44ad'}
+                {x: 0, y: 350, width: 100, height: 20, color: '#ffffff'},
+                {x: 150, y: 300, width: 100, height: 20, color: '#ffffff'},
+                {x: 300, y: 250, width: 100, height: 20, color: '#ffffff'},
+                {x: 450, y: 200, width: 100, height: 20, color: '#ffffff'},
+                {x: 600, y: 150, width: 100, height: 20, color: '#ffffff'},
+                {x: 700, y: 250, width: 100, height: 20, color: '#ffffff'}
             ];
             
             coinsList = [
@@ -519,7 +519,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Фон
         if (level === 1) {
-            ctx.fillStyle = '#6b8cff';
+            ctx.fillStyle = '#87CEEB';
             ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
             
             // Облака
