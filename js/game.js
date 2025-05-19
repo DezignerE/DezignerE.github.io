@@ -1,63 +1,68 @@
-// Инициализация игры
 document.addEventListener('DOMContentLoaded', function() {
+    // Получаем элементы DOM
+    const gameContainer = document.getElementById('gameContainer');
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const gameInfo = document.getElementById('gameInfo');
     const startScreen = document.getElementById('startScreen');
     const startButton = document.getElementById('startButton');
-    const endScreen = document.createElement('div');
-    endScreen.style.position = 'fixed';
-    endScreen.style.top = '0';
-    endScreen.style.left = '0';
-    endScreen.style.width = '100%';
-    endScreen.style.height = '100%';
-    endScreen.style.display = 'none';
-    endScreen.style.flexDirection = 'column';
-    endScreen.style.justifyContent = 'center';
-    endScreen.style.alignItems = 'center';
-    endScreen.style.zIndex = '200';
-    document.body.appendChild(endScreen);
-
-    const endMessage = document.createElement('div');
-    endMessage.style.fontSize = '24px';
-    endMessage.style.fontWeight = 'bold';
-    endMessage.style.textAlign = 'center';
-    endMessage.style.padding = '20px';
-    endMessage.style.borderRadius = '10px';
-    endMessage.style.maxWidth = '80%';
-    endScreen.appendChild(endMessage);
-
-    const restartButton = document.createElement('button');
-    restartButton.textContent = 'Играть снова';
-    restartButton.style.marginTop = '20px';
-    restartButton.style.padding = '10px 20px';
-    restartButton.style.fontSize = '18px';
-    restartButton.style.borderRadius = '5px';
-    restartButton.style.backgroundColor = '#4CAF50';
-    restartButton.style.color = 'white';
-    restartButton.style.border = 'none';
-    restartButton.style.cursor = 'pointer';
-    endScreen.appendChild(restartButton);
-
-    restartButton.addEventListener('click', function() {
-        endScreen.style.display = 'none';
-        resetGame();
-    });
+    const endScreen = document.getElementById('endScreen');
+    const endMessage = document.getElementById('endMessage');
+    const restartButton = document.getElementById('restartButton');
+    const soundBtn = document.getElementById('soundBtn');
+    let musicEnabled = true;
     
-    // Настройки игры
-    const GAME_WIDTH = 800;
-    const GAME_HEIGHT = 400;
-    canvas.width = GAME_WIDTH;
-    canvas.height = GAME_HEIGHT;
+    // Размеры игры (базовые, будут масштабироваться)
+    const BASE_WIDTH = 800;
+    const BASE_HEIGHT = 400;
+    let scaleRatio = 1;
+    let gameWidth = BASE_WIDTH;
+    let gameHeight = BASE_HEIGHT;
+    
+    // Функция для масштабирования игры
+    function resizeGame() {
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        
+        // Рассчитываем соотношение сторон
+        const windowRatio = windowWidth / windowHeight;
+        const gameRatio = BASE_WIDTH / BASE_HEIGHT;
+        
+        if (windowRatio < gameRatio) {
+            // Окно уже, чем игра - масштабируем по ширине
+            scaleRatio = windowWidth / BASE_WIDTH;
+            gameWidth = windowWidth;
+            gameHeight = gameWidth / gameRatio;
+        } else {
+            // Окно шире, чем игра - масштабируем по высоте
+            scaleRatio = windowHeight / BASE_HEIGHT;
+            gameHeight = windowHeight;
+            gameWidth = gameHeight * gameRatio;
+        }
+        
+        // Устанавливаем размеры canvas
+        canvas.width = BASE_WIDTH;
+        canvas.height = BASE_HEIGHT;
+        canvas.style.width = gameWidth + 'px';
+        canvas.style.height = gameHeight + 'px';
+        
+        // Обновляем размеры игрового контейнера
+        gameContainer.style.width = gameWidth + 'px';
+        gameContainer.style.height = gameHeight + 'px';
+    }
+    
+    // Инициализируем размеры при загрузке и при изменении окна
+    resizeGame();
+    window.addEventListener('resize', resizeGame);
     
     // Аудио элементы
     const coinSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2095/2095-preview.mp3');
     coinSound.volume = 0.3;
     
     const levelMusic = [
-        new Audio('https://assets.mixkit.co/music/preview/mixkit-game-level-music-689.mp3'), // Уровень 1
-        new Audio('https://assets.mixkit.co/music/preview/mixkit-adventure-game-loop-625.mp3'), // Уровень 2
-        new Audio('https://assets.mixkit.co/music/preview/mixkit-sci-fi-game-loop-666.mp3') // Уровень 3 (космос)
+        new Audio('https://assets.mixkit.co/music/preview/mixkit-game-level-music-689.mp3'),
+        new Audio('https://assets.mixkit.co/music/preview/mixkit-adventure-game-loop-625.mp3'),
+        new Audio('https://assets.mixkit.co/music/preview/mixkit-sci-fi-game-loop-666.mp3')
     ];
     
     levelMusic.forEach(music => {
@@ -75,6 +80,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let invincible = false;
     let invincibleTimer = 0;
     let currentMusic = null;
+    let animationFrame = 0;
+    let birds = [];
     
     // Игрок
     const player = {
@@ -89,35 +96,55 @@ document.addEventListener('DOMContentLoaded', function() {
         velY: 0,
         isJumping: false,
         direction: 1,
-        canJump: true, // Новое свойство для контроля прыжка
+        canJump: true,
+        frame: 0,
         draw: function() {
             if (invincible && Math.floor(invincibleTimer / 5) % 2 === 0) {
                 return;
             }
             
+            ctx.save();
+            ctx.translate(this.x - cameraOffset, this.y);
+            
+            // Анимация ходьбы
+            if (this.velX !== 0 && !this.isJumping) {
+                this.frame = (this.frame + 0.2) % 4;
+                const legOffset = Math.floor(this.frame) < 2 ? 0 : 2;
+                
+                // Ноги
+                ctx.fillStyle = '#2980b9';
+                ctx.fillRect(8, 38 - legOffset, 6, 10 + legOffset);
+                ctx.fillRect(18, 38 - (2 - legOffset), 6, 10 + (2 - legOffset));
+            } else {
+                // Стоячая поза
+                ctx.fillStyle = '#2980b9';
+                ctx.fillRect(8, 38, 6, 10);
+                ctx.fillRect(18, 38, 6, 10);
+            }
+            
+            // Тело
             ctx.fillStyle = '#e74c3c';
-            ctx.fillRect(this.x - cameraOffset, this.y, this.width, this.height);
+            ctx.fillRect(0, 0, this.width, this.height - 10);
             
+            // Голова
             ctx.fillStyle = '#3498db';
-            ctx.fillRect(this.x - cameraOffset + 8, this.y - 5, 16, 10);
+            ctx.fillRect(8, -5, 16, 10);
             
+            // Глаз
             ctx.fillStyle = 'white';
             const eyeOffset = this.direction === 1 ? 12 : 8;
-            ctx.fillRect(this.x - cameraOffset + eyeOffset, this.y, 4, 4);
+            ctx.fillRect(eyeOffset, 0, 4, 4);
+            
+            ctx.restore();
         }
     };
     
-    // Монеты
+    // Монеты, враги, платформы, телепорты
     let coinsList = [];
-    
-    // Враги
     let enemies = [];
-    
-    // Платформы
     let platforms = [];
-    
-    // Флаг (конец уровня)
-    let flag = null;
+    let teleport = null;
+    let teleportAnimation = 0;
     
     // Уровни
     function loadLevel(levelNum) {
@@ -127,20 +154,14 @@ document.addEventListener('DOMContentLoaded', function() {
             currentMusic.currentTime = 0;
         }
         
-        // Запустить музыку для нового уровня
+        // Запустить музыку для нового уровня, если музыка включена
         currentMusic = levelMusic[levelNum - 1];
-        currentMusic.play().catch(e => console.log("Автовоспроизведение заблокировано"));
-        
-        platforms = [];
-        coinsList = [];
-        enemies = [];
-        flag = null;
+        if (musicEnabled) {
+            currentMusic.play().catch(e => console.log("Ошибка воспроизведения музыки:", e));
+        }
         
         if (levelNum === 1) {
             // Уровень 1 (природа)
-            ctx.fillStyle = '#6b8cff';
-            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-            
             platforms = [
                 {x: 0, y: 350, width: 200, height: 20, color: '#2ecc71'},
                 {x: 250, y: 300, width: 150, height: 20, color: '#2ecc71'},
@@ -149,9 +170,9 @@ document.addEventListener('DOMContentLoaded', function() {
             ];
             
             coinsList = [
-                {x: 100, y: 310, width: 16, height: 16, collected: false},
-                {x: 300, y: 260, width: 16, height: 16, collected: false},
-                {x: 500, y: 210, width: 16, height: 16, collected: false}
+                {x: 100, y: 310, width: 16, height: 16, collected: false, bounce: 0, bounceDir: 1, collectAnim: 0},
+                {x: 300, y: 260, width: 16, height: 16, collected: false, bounce: 0, bounceDir: 1, collectAnim: 0},
+                {x: 500, y: 210, width: 16, height: 16, collected: false, bounce: 0, bounceDir: 1, collectAnim: 0}
             ];
             
             enemies = [
@@ -159,13 +180,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 {x: 550, y: 220, width: 32, height: 32, speed: 0.75, direction: 1}
             ];
             
-            flag = {x: 750, y: 290, width: 20, height: 60, color: '#e74c3c'};
+            teleport = {x: 750, y: 290, width: 40, height: 60, color: '#9b59b6', particles: []};
+            
+            // Создаем птичек для фона
+            birds = [];
+            for (let i = 0; i < 3; i++) {
+                birds.push({
+                    x: Math.random() * BASE_WIDTH,
+                    y: 50 + Math.random() * 100,
+                    speed: 0.5 + Math.random() * 1,
+                    frame: Math.floor(Math.random() * 4),
+                    size: 10 + Math.random() * 10
+                });
+            }
             
         } else if (levelNum === 2) {
             // Уровень 2 (пещеры)
-            ctx.fillStyle = '#34495e';
-            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-            
             platforms = [
                 {x: 0, y: 350, width: 150, height: 20, color: '#e67e22'},
                 {x: 200, y: 300, width: 100, height: 20, color: '#e67e22'},
@@ -175,10 +205,10 @@ document.addEventListener('DOMContentLoaded', function() {
             ];
             
             coinsList = [
-                {x: 50, y: 310, width: 16, height: 16, collected: false},
-                {x: 250, y: 260, width: 16, height: 16, collected: false},
-                {x: 400, y: 210, width: 16, height: 16, collected: false},
-                {x: 600, y: 160, width: 16, height: 16, collected: false}
+                {x: 50, y: 310, width: 16, height: 16, collected: false, bounce: 0, bounceDir: 1, collectAnim: 0},
+                {x: 250, y: 260, width: 16, height: 16, collected: false, bounce: 0, bounceDir: 1, collectAnim: 0},
+                {x: 400, y: 210, width: 16, height: 16, collected: false, bounce: 0, bounceDir: 1, collectAnim: 0},
+                {x: 600, y: 160, width: 16, height: 16, collected: false, bounce: 0, bounceDir: 1, collectAnim: 0}
             ];
             
             enemies = [
@@ -187,24 +217,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 {x: 600, y: 170, width: 32, height: 32, speed: 0.75, direction: -1}
             ];
             
-            flag = {x: 750, y: 250, width: 20, height: 60, color: '#e74c3c'};
+            teleport = {x: 750, y: 250, width: 40, height: 60, color: '#3498db', particles: []};
             
         } else if (levelNum === 3) {
             // Уровень 3 (космос)
-            ctx.fillStyle = '#0f0f1a';
-            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-            
-            // Звезды на фоне
-            for (let i = 0; i < 100; i++) {
-                ctx.fillStyle = `rgba(255, 255, 255, ${Math.random()})`;
-                ctx.fillRect(
-                    Math.random() * GAME_WIDTH, 
-                    Math.random() * GAME_HEIGHT, 
-                    1 + Math.random() * 2, 
-                    1 + Math.random() * 2
-                );
-            }
-            
             platforms = [
                 {x: 0, y: 350, width: 100, height: 20, color: '#8e44ad'},
                 {x: 150, y: 300, width: 100, height: 20, color: '#8e44ad'},
@@ -215,11 +231,11 @@ document.addEventListener('DOMContentLoaded', function() {
             ];
             
             coinsList = [
-                {x: 50, y: 310, width: 16, height: 16, collected: false},
-                {x: 200, y: 260, width: 16, height: 16, collected: false},
-                {x: 350, y: 210, width: 16, height: 16, collected: false},
-                {x: 500, y: 160, width: 16, height: 16, collected: false},
-                {x: 650, y: 110, width: 16, height: 16, collected: false}
+                {x: 50, y: 310, width: 16, height: 16, collected: false, bounce: 0, bounceDir: 1, collectAnim: 0},
+                {x: 200, y: 260, width: 16, height: 16, collected: false, bounce: 0, bounceDir: 1, collectAnim: 0},
+                {x: 350, y: 210, width: 16, height: 16, collected: false, bounce: 0, bounceDir: 1, collectAnim: 0},
+                {x: 500, y: 160, width: 16, height: 16, collected: false, bounce: 0, bounceDir: 1, collectAnim: 0},
+                {x: 650, y: 110, width: 16, height: 16, collected: false, bounce: 0, bounceDir: 1, collectAnim: 0}
             ];
             
             enemies = [
@@ -229,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 {x: 630, y: 120, width: 32, height: 32, speed: 1.3, direction: 1}
             ];
             
-            flag = {x: 750, y: 110, width: 20, height: 60, color: '#3498db'};
+            teleport = {x: 750, y: 110, width: 40, height: 60, color: '#e74c3c', particles: []};
         }
     }
     
@@ -248,12 +264,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'ArrowUp') keys.up = true;
         if (e.key === ' ') keys.space = true;
         
-        // Прыжок при нажатии
-        if ((keys.up || keys.space) && !player.isJumping && player.canJump) {
+        if ((keys.up || keys.space) && !player.isJumping) {
             player.velY = -player.jumpPower;
             player.isJumping = true;
             player.canJump = false;
-            setTimeout(() => player.canJump = true, 100); // Защита от спама прыжков
+            setTimeout(() => player.canJump = true, 100);
         }
     }
 
@@ -271,40 +286,50 @@ document.addEventListener('DOMContentLoaded', function() {
         const jumpBtn = document.getElementById('jumpBtn');
         
         // Мобильное управление
-        leftBtn.addEventListener('touchstart', () => { 
-            keys.left = true;
-            player.direction = -1; 
-        });
-        leftBtn.addEventListener('touchend', () => { 
-            keys.left = false;
-            if (!keys.right) player.velX = 0;
-        });
+        const handleTouchStart = (btn, key) => {
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys[key] = true;
+                if (key === 'left') player.direction = -1;
+                if (key === 'right') player.direction = 1;
+            }, { passive: false });
+        };
         
-        rightBtn.addEventListener('touchstart', () => { 
-            keys.right = true;
-            player.direction = 1; 
-        });
-        rightBtn.addEventListener('touchend', () => { 
-            keys.right = false;
-            if (!keys.left) player.velX = 0;
-        });
+        const handleTouchEnd = (btn, key) => {
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keys[key] = false;
+                if (!keys.left && !keys.right) player.velX = 0;
+            }, { passive: false });
+        };
         
-        jumpBtn.addEventListener('touchstart', () => {
-            if (!player.isJumping && player.canJump) {
+        handleTouchStart(leftBtn, 'left');
+        handleTouchEnd(leftBtn, 'left');
+        handleTouchStart(rightBtn, 'right');
+        handleTouchEnd(rightBtn, 'right');
+        
+        jumpBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!player.isJumping) {
                 player.velY = -player.jumpPower;
                 player.isJumping = true;
                 player.canJump = false;
                 setTimeout(() => player.canJump = true, 100);
             }
-        });
+        }, { passive: false });
         
         // Управление с клавиатуры
         document.addEventListener('keydown', handleKeyDown);
         document.addEventListener('keyup', handleKeyUp);
+        
+        // Отключаем контекстное меню на кнопках
+        [leftBtn, rightBtn, jumpBtn].forEach(btn => {
+            btn.addEventListener('contextmenu', (e) => e.preventDefault());
+        });
     }
     
     // Проверка столкновений
-      function checkCollisions() {
+    function checkCollisions() {
         player.isJumping = true;
         
         // Столкновение с платформами
@@ -333,7 +358,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (lives <= 0) {
                         gameOver = true;
-                        resetGame();
+                        showEndScreen(false);
                     } else {
                         invincible = true;
                         invincibleTimer = 120;
@@ -351,6 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 player.y + player.height > coin.y) {
                 
                 coin.collected = true;
+                coin.collectAnim = 15; // Начальное значение для анимации сбора
                 coins++;
                 coinSound.currentTime = 0;
                 coinSound.play();
@@ -358,54 +384,34 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Проверка достижения флага
-            if (flag &&
-        player.x < flag.x + flag.width &&
-        player.x + player.width > flag.x &&
-        player.y < flag.y + flag.height &&
-        player.y + player.height > flag.y) {
-        
-        if (level < 3) {
-            level++;
-            loadLevel(level);
-            player.x = 50;
-            player.y = 300;
-            gameInfo.textContent = `Уровень: ${level} | Монеты: ${coins} | Жизни: ${lives}`;
-        } else {
-            gameOver = true;
+        // Проверка достижения телепорта
+        if (teleport &&
+            player.x < teleport.x + teleport.width &&
+            player.x + player.width > teleport.x &&
+            player.y < teleport.y + teleport.height &&
+            player.y + player.height > teleport.y) {
             
-            // Общее количество монет на всех уровнях
-            const totalCoins = 
-                (level === 1 ? 3 : 0) + // Монеты на уровне 1
-                (level >= 2 ? 4 : 0) +  // Монеты на уровне 2
-                (level >= 3 ? 5 : 0);   // Монеты на уровне 3
-            
-            // Проверяем, собраны ли все монеты
-            const allCoinsCollected = coins >= totalCoins;
-            
-            if (allCoinsCollected) {
-                endScreen.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-                endMessage.style.color = '#000';
-                endMessage.textContent = 'Ты собрал все шекели и тусишь на полную катушку!';
+            if (level < 3) {
+                level++;
+                loadLevel(level);
+                player.x = 50;
+                player.y = 300;
+                gameInfo.textContent = `Уровень: ${level} | Монеты: ${coins} | Жизни: ${lives}`;
             } else {
-                endScreen.style.backgroundColor = 'rgba(100, 100, 100, 0.9)';
-                endMessage.style.color = '#fff';
-                endMessage.textContent = 'Ты прошел, но не собрал всех шекелей, тусишь не на полную катушку';
+                gameOver = true;
+                const totalCoins = 3 + 4 + 5; // Все монеты на всех уровнях
+                showEndScreen(coins >= totalCoins);
             }
-            
-            endScreen.style.display = 'flex';
-            gameInfo.textContent = `Игра окончена | Монеты: ${coins}`;
         }
-    }
 
         // Падение за экран
-        if (player.y > GAME_HEIGHT) {
+        if (player.y > BASE_HEIGHT) {
             lives--;
             gameInfo.textContent = `Уровень: ${level} | Монеты: ${coins} | Жизни: ${lives}`;
             
             if (lives <= 0) {
                 gameOver = true;
-                resetGame();
+                showEndScreen(false);
             } else {
                 player.y = 50;
                 player.x = 50;
@@ -441,27 +447,163 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Обновление монет
+    function updateCoins() {
+        for (const coin of coinsList) {
+            if (!coin.collected) {
+                // Анимация подпрыгивания монет
+                coin.bounce += 0.1 * coin.bounceDir;
+                if (coin.bounce > 3 || coin.bounce < 0) {
+                    coin.bounceDir *= -1;
+                }
+            } else if (coin.collectAnim > 0) {
+                // Анимация сбора монеты
+                coin.collectAnim--;
+            }
+        }
+    }
+    
+    // Обновление птичек (для уровня 1)
+    function updateBirds() {
+        if (level !== 1) return;
+        
+        for (let i = 0; i < birds.length; i++) {
+            const bird = birds[i];
+            bird.x += bird.speed;
+            bird.frame = (bird.frame + 0.1) % 4;
+            
+            // Если птичка улетела за экран, перемещаем её в начало
+            if (bird.x > BASE_WIDTH + 50) {
+                bird.x = -50;
+                bird.y = 50 + Math.random() * 100;
+            }
+        }
+    }
+    
+    // Обновление телепорта
+    function updateTeleport() {
+        if (!teleport) return;
+        
+        teleportAnimation = (teleportAnimation + 0.1) % (Math.PI * 2);
+        
+        // Добавляем частицы для телепорта
+        if (Math.random() < 0.3) {
+            teleport.particles.push({
+                x: teleport.x + Math.random() * teleport.width,
+                y: teleport.y + Math.random() * teleport.height,
+                size: 2 + Math.random() * 4,
+                alpha: 0.7 + Math.random() * 0.3,
+                speedX: -1 + Math.random() * 2,
+                speedY: -1 + Math.random() * 2,
+                life: 30 + Math.random() * 30
+            });
+        }
+        
+        // Обновляем частицы
+        for (let i = teleport.particles.length - 1; i >= 0; i--) {
+            const p = teleport.particles[i];
+            p.x += p.speedX;
+            p.y += p.speedY;
+            p.life--;
+            
+            if (p.life <= 0) {
+                teleport.particles.splice(i, 1);
+            }
+        }
+    }
+    
     // Отрисовка игры
     function draw() {
-        ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+        // Очистка canvas
+        ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
         
         // Фон
-        ctx.fillStyle = '#6b8cff';
-        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-        
-        // Облака
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.beginPath();
-        ctx.arc(100 - cameraOffset * 0.2, 50, 30, 0, Math.PI * 2);
-        ctx.arc(130 - cameraOffset * 0.2, 50, 35, 0, Math.PI * 2);
-        ctx.arc(80 - cameraOffset * 0.2, 70, 25, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.beginPath();
-        ctx.arc(400 - cameraOffset * 0.2, 80, 40, 0, Math.PI * 2);
-        ctx.arc(430 - cameraOffset * 0.2, 80, 35, 0, Math.PI * 2);
-        ctx.arc(380 - cameraOffset * 0.2, 100, 30, 0, Math.PI * 2);
-        ctx.fill();
+        if (level === 1) {
+            ctx.fillStyle = '#6b8cff';
+            ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+            
+            // Облака
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.beginPath();
+            ctx.arc(100 - cameraOffset * 0.2, 50, 30, 0, Math.PI * 2);
+            ctx.arc(130 - cameraOffset * 0.2, 50, 35, 0, Math.PI * 2);
+            ctx.arc(80 - cameraOffset * 0.2, 70, 25, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(400 - cameraOffset * 0.2, 80, 40, 0, Math.PI * 2);
+            ctx.arc(430 - cameraOffset * 0.2, 80, 35, 0, Math.PI * 2);
+            ctx.arc(380 - cameraOffset * 0.2, 100, 30, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Птички
+            for (const bird of birds) {
+                ctx.save();
+                ctx.translate(bird.x - cameraOffset * 0.1, bird.y);
+                
+                // Тело птички
+                ctx.fillStyle = '#e74c3c';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, bird.size, bird.size/2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Крылья (анимированные)
+                ctx.fillStyle = '#c0392b';
+                const wingY = Math.sin(bird.frame) * 3;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.quadraticCurveTo(-bird.size, wingY, -bird.size/2, wingY - bird.size/2);
+                ctx.quadraticCurveTo(0, wingY, 0, 0);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+            
+        } else if (level === 2) {
+            // Фон для уровня 2 (катакомбы)
+            ctx.fillStyle = '#34495e';
+            ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+            
+            // Рисуем катакомбы
+            ctx.fillStyle = '#2c3e50';
+            for (let i = 0; i < 10; i++) {
+                // Арки
+                const x = (i * 150 - cameraOffset * 0.3) % (BASE_WIDTH + 300) - 150;
+                ctx.beginPath();
+                ctx.arc(x + 75, 350, 75, 0, Math.PI, true);
+                ctx.fill();
+                
+                // Колонны
+                ctx.fillRect(x, 0, 30, 350);
+                ctx.fillRect(x + 120, 0, 30, 350);
+            }
+            
+            // Камни (уменьшаем частоту мерцания в 5 раз)
+            for (let i = 0; i < 20; i++) {
+                const x = (i * 100 - cameraOffset * 0.2) % (BASE_WIDTH + 200) - 100;
+                const y = 100 + Math.sin(i) * 50;
+                const size = 10 + Math.random() * 20;
+                const alpha = 0.2 + Math.sin(animationFrame / 50 + i) * 0.1; // Медленное мерцание
+                ctx.fillStyle = `rgba(127, 140, 141, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else if (level === 3) {
+            ctx.fillStyle = '#0f0f1a';
+            ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+            
+            // Звезды
+            for (let i = 0; i < 100; i++) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.random()})`;
+                ctx.fillRect(
+                    Math.random() * BASE_WIDTH, 
+                    Math.random() * BASE_HEIGHT, 
+                    1 + Math.random() * 2, 
+                    1 + Math.random() * 2
+                );
+            }
+        }
         
         // Платформы
         for (const platform of platforms) {
@@ -474,12 +616,37 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!coin.collected) {
                 ctx.fillStyle = '#f1c40f';
                 ctx.beginPath();
-                ctx.arc(coin.x - cameraOffset + coin.width/2, coin.y + coin.height/2, coin.width/2, 0, Math.PI * 2);
+                ctx.arc(
+                    coin.x - cameraOffset + coin.width/2, 
+                    coin.y + coin.height/2 - coin.bounce, 
+                    coin.width/2, 
+                    0, 
+                    Math.PI * 2
+                );
                 ctx.fill();
                 
                 ctx.fillStyle = '#f39c12';
                 ctx.beginPath();
-                ctx.arc(coin.x - cameraOffset + coin.width/2, coin.y + coin.height/2, coin.width/3, 0, Math.PI * 2);
+                ctx.arc(
+                    coin.x - cameraOffset + coin.width/2, 
+                    coin.y + coin.height/2 - coin.bounce, 
+                    coin.width/3, 
+                    0, 
+                    Math.PI * 2
+                );
+                ctx.fill();
+            } else if (coin.collectAnim > 0) {
+                // Анимация сбора монеты
+                const size = coin.collectAnim;
+                ctx.fillStyle = `rgba(241, 196, 15, ${coin.collectAnim / 15})`;
+                ctx.beginPath();
+                ctx.arc(
+                    coin.x - cameraOffset + coin.width/2, 
+                    coin.y + coin.height/2 - size, 
+                    size, 
+                    0, 
+                    Math.PI * 2
+                );
                 ctx.fill();
             }
         }
@@ -496,22 +663,50 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.fillRect(eyeX, enemy.y + 10, 4, 4);
         }
         
-        // Флаг
-        if (flag) {
-            ctx.fillStyle = '#e74c3c';
-            ctx.fillRect(flag.x - cameraOffset, flag.y, flag.width, flag.height);
+        // Телепорт
+        if (teleport) {
+            // Основание телепорта
+            ctx.fillStyle = teleport.color;
+            ctx.fillRect(teleport.x - cameraOffset, teleport.y, teleport.width, teleport.height);
             
-            ctx.fillStyle = '#2ecc71';
+            // Анимированный портал
+            ctx.save();
+            ctx.translate(teleport.x - cameraOffset + teleport.width/2, teleport.y + teleport.height/2);
+            
+            // Внешнее кольцо
+            ctx.strokeStyle = `rgba(255, 255, 255, 0.7)`;
+            ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(flag.x - cameraOffset + flag.width, flag.y);
-            ctx.lineTo(flag.x - cameraOffset + flag.width + 30, flag.y + 15);
-            ctx.lineTo(flag.x - cameraOffset + flag.width, flag.y + 30);
-            ctx.closePath();
+            ctx.arc(0, 0, teleport.width/2 + Math.sin(teleportAnimation) * 3, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Внутренний портал
+            const gradient = ctx.createRadialGradient(0, 0, 5, 0, 0, teleport.width/3);
+            gradient.addColorStop(0, `rgba(255, 255, 255, 0.9)`);
+            gradient.addColorStop(1, `rgba(255, 255, 255, 0.1)`);
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(0, 0, teleport.width/3, 0, Math.PI * 2);
             ctx.fill();
+            
+            ctx.restore();
+            
+            // Частицы телепорта
+            for (const p of teleport.particles) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+                ctx.fillRect(
+                    p.x - cameraOffset - p.size/2,
+                    p.y - p.size/2,
+                    p.size,
+                    p.size
+                );
+            }
         }
         
         // Игрок
         player.draw();
+        
+        animationFrame++;
     }
     
     // Обновление игры
@@ -535,11 +730,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Ограничение движения
         if (player.x < 0) player.x = 0;
-        if (player.x > GAME_WIDTH - player.width) {
-            player.x = GAME_WIDTH - player.width;
+        if (player.x > BASE_WIDTH - player.width) {
+            player.x = BASE_WIDTH - player.width;
         }
         
-        cameraOffset = Math.max(0, player.x - GAME_WIDTH / 3);
+        cameraOffset = Math.max(0, player.x - BASE_WIDTH / 3);
         
         if (invincible) {
             invincibleTimer--;
@@ -548,8 +743,33 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
+        updateCoins();
+        updateBirds();
+        updateTeleport();
         checkCollisions();
         updateEnemies();
+    }
+    
+    // Показать экран завершения
+    function showEndScreen(allCoinsCollected) {
+        if (allCoinsCollected) {
+            endScreen.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+            endMessage.style.color = '#000';
+            endMessage.textContent = 'Ты собрал все шекели и тусишь на полную катушку!';
+        } else {
+            endScreen.style.backgroundColor = 'rgba(100, 100, 100, 0.9)';
+            endMessage.style.color = '#fff';
+            endMessage.textContent = lives <= 0 ? 'Ты можешь лучше!' : 'Ты прошел, но не собрал всех шекелей, тусишь не на полную катушку';
+        }
+        
+        endScreen.style.display = 'flex';
+        gameInfo.textContent = `Игра окончена | Монеты: ${coins}`;
+        
+        // Остановить музыку при завершении игры
+        if (currentMusic) {
+            currentMusic.pause();
+            currentMusic.currentTime = 0;
+        }
     }
     
     // Сброс игры
@@ -572,7 +792,24 @@ document.addEventListener('DOMContentLoaded', function() {
         keys.right = false;
         keys.up = false;
         keys.space = false;
+        
+        // Убедимся, что музыка играет, если включена
+        if (musicEnabled && currentMusic) {
+            currentMusic.play().catch(e => console.log("Ошибка воспроизведения музыки при сбросе:", e));
+        }
     }
+    
+    // Переключение звука
+    soundBtn.addEventListener('click', function() {
+        musicEnabled = !musicEnabled;
+        soundBtn.textContent = musicEnabled ? '🔊' : '🔇';
+        
+        if (musicEnabled && currentMusic) {
+            currentMusic.play().catch(e => console.log("Ошибка воспроизведения музыки:", e));
+        } else if (currentMusic) {
+            currentMusic.pause();
+        }
+    });
     
     // Игровой цикл
     function gameLoop() {
@@ -591,4 +828,31 @@ document.addEventListener('DOMContentLoaded', function() {
         setupControls();
         gameLoop();
     });
+    
+    // Перезапуск игры
+    restartButton.addEventListener('click', function() {
+        endScreen.style.display = 'none';
+        resetGame();
+    });
+    
+    // Предотвращаем скролл страницы при касании элементов управления
+    document.body.addEventListener('touchmove', function(e) {
+        if (gameStarted) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+    
+    // Автозапуск музыки после взаимодействия пользователя
+    document.addEventListener('click', function initAudio() {
+        if (!musicEnabled) return;
+        
+        levelMusic.forEach(music => {
+            music.play().then(() => {
+                music.pause();
+                music.currentTime = 0;
+            }).catch(e => console.log("Аудио инициализировано"));
+        });
+        
+        document.removeEventListener('click', initAudio);
+    }, { once: true });
 });
