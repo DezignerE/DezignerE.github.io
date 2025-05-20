@@ -82,6 +82,33 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentMusic = null;
     let animationFrame = 0;
     let birds = [];
+    let bubbleTimer = 0;
+    let bubbleText = '';
+    let bubbleIndex = 0;
+    let bubbleVariants = ['Ай', 'Ой', 'Хорош', 'Бобо', 'Нет', 'эх'];
+    function shuffleBubbleVariants() {
+        for (let i = bubbleVariants.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [bubbleVariants[i], bubbleVariants[j]] = [bubbleVariants[j], bubbleVariants[i]];
+        }
+    }
+    
+    let coinBubbleTimer = 0;
+    let coinBubbleText = '';
+    let coinBubbleIndex = 0;
+    let coinBubbleVariants = ['Да', 'Йес', 'Шикос', 'Шекелек', 'еще'];
+    function shuffleCoinBubbleVariants() {
+        for (let i = coinBubbleVariants.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [coinBubbleVariants[i], coinBubbleVariants[j]] = [coinBubbleVariants[j], coinBubbleVariants[i]];
+        }
+    }
+    
+    let isSecretLevel = false;
+    let boss = null;
+    let bossDefeated = false;
+    let bossVictoryTimer = 0;
+    let bossTouch = false; // флаг для контроля однократного снятия жизни при касании босса
     
     // Игрок
     const player = {
@@ -99,22 +126,25 @@ document.addEventListener('DOMContentLoaded', function() {
         canJump: true,
         frame: 0,
         draw: function() {
-            if (invincible && Math.floor(invincibleTimer / 5) % 2 === 0) {
-                return;
-            }
-            
+            let blinking = invincible && Math.floor(invincibleTimer / 25) % 2 === 0;
             ctx.save();
+            if (blinking) ctx.globalAlpha = 0.4;
             ctx.translate(this.x - cameraOffset, this.y);
             
             // Анимация ходьбы
             if (this.velX !== 0 && !this.isJumping) {
-                this.frame = (this.frame + 0.2) % 4;
-                const legOffset = Math.floor(this.frame) < 2 ? 0 : 2;
-                
-                // Ноги
-                ctx.fillStyle = '#2980b9';
-                ctx.fillRect(8, 38 - legOffset, 6, 10 + legOffset);
-                ctx.fillRect(18, 38 - (2 - legOffset), 6, 10 + (2 - legOffset));
+                this.frame = (this.frame + Math.abs(this.velX) * 0.25) % (2 * Math.PI);
+                // Ноги как дуги
+                for (let i = 0; i < 2; i++) {
+                    ctx.save();
+                    ctx.translate(14 + i * 10, 32);
+                    let phase = this.frame + (i === 0 ? 0 : Math.PI);
+                    let angle = Math.sin(phase) * 0.7;
+                    ctx.rotate(angle);
+                    ctx.fillStyle = '#2980b9';
+                    ctx.fillRect(-3, 0, 6, 16);
+                    ctx.restore();
+                }
             } else {
                 // Стоячая поза
                 ctx.fillStyle = '#2980b9';
@@ -153,14 +183,18 @@ document.addEventListener('DOMContentLoaded', function() {
             currentMusic.pause();
             currentMusic.currentTime = 0;
         }
-        
         // Запустить музыку для нового уровня, если музыка включена
-        currentMusic = levelMusic[levelNum - 1];
-        if (musicEnabled) {
-            currentMusic.play().catch(e => console.log("Ошибка воспроизведения музыки:", e));
+        if (levelNum >= 1 && levelNum <= 3) {
+            currentMusic = levelMusic[levelNum - 1];
+            if (musicEnabled) {
+                currentMusic.play().catch(e => console.log("Ошибка воспроизведения музыки:", e));
+            }
+        } else {
+            currentMusic = null;
         }
         
         if (levelNum === 1) {
+            isSecretLevel = false;
             // Уровень 1 (природа)
             platforms = [
                 {x: 0, y: 350, width: 200, height: 20, color: '#2ecc71'},
@@ -195,10 +229,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
         } else if (levelNum === 2) {
+            isSecretLevel = false;
             // Уровень 2 (пещеры)
             platforms = [
                 {x: 0, y: 350, width: 150, height: 20, color: '#e67e22'},
-                {x: 200, y: 300, width: 100, height: 20, color: '#e67e22'},
+                {x: 200, y: 300, width: 100, height: 20, color: '#e67e22',
+                 moving: true, dir: 1, speed: 1.5, minX: 200, maxX: 230},
                 {x: 350, y: 250, width: 150, height: 20, color: '#e67e22'},
                 {x: 550, y: 200, width: 100, height: 20, color: '#e67e22'},
                 {x: 700, y: 300, width: 100, height: 20, color: '#e67e22'}
@@ -220,13 +256,14 @@ document.addEventListener('DOMContentLoaded', function() {
             teleport = {x: 750, y: 250, width: 40, height: 60, color: '#3498db', particles: []};
             
         } else if (levelNum === 3) {
+            isSecretLevel = false;
             // Уровень 3 (космос)
             platforms = [
                 {x: 0, y: 350, width: 100, height: 20, color: '#ffffff'},
-                {x: 150, y: 300, width: 100, height: 20, color: '#ffffff'},
-                {x: 300, y: 250, width: 100, height: 20, color: '#ffffff'},
-                {x: 450, y: 200, width: 100, height: 20, color: '#ffffff'},
-                {x: 600, y: 150, width: 100, height: 20, color: '#ffffff'},
+                {x: 150, y: 300, width: 100, height: 20, color: '#ffffff', moving: true, dir: 1, speed: 1, minY: 250, maxY: 320},
+                {x: 300, y: 250, width: 100, height: 20, color: '#ffffff', moving: true, dir: -1, speed: 1.2, minY: 200, maxY: 270},
+                {x: 450, y: 200, width: 100, height: 20, color: '#ffffff', moving: true, dir: 1, speed: 0.8, minY: 170, maxY: 230},
+                {x: 600, y: 150, width: 100, height: 20, color: '#ffffff', moving: true, dir: -1, speed: 1.1, minY: 120, maxY: 180},
                 {x: 700, y: 250, width: 100, height: 20, color: '#ffffff'}
             ];
             
@@ -246,6 +283,24 @@ document.addEventListener('DOMContentLoaded', function() {
             ];
             
             teleport = {x: 750, y: 110, width: 40, height: 60, color: '#e74c3c', particles: []};
+        } else if (levelNum === 99) { // секретный уровень
+            isSecretLevel = true;
+            platforms = [
+                {x: 0, y: 350, width: BASE_WIDTH, height: 30, color: '#ffe066'}
+            ];
+            // 30 монет в 5 рядов по 6 штук, по центру экрана, рядом с надписью
+            coinsList = Array.from({length: 30}, (_, i) => ({
+                x: BASE_WIDTH/2 - 120 + (i % 6) * 48,
+                y: BASE_HEIGHT/2 - 60 + Math.floor(i / 6) * 32,
+                width: 16,
+                height: 16,
+                collected: false,
+                bounce: 0,
+                bounceDir: 1,
+                collectAnim: 0
+            }));
+            enemies = [];
+            teleport = null;
         }
     }
     
@@ -269,6 +324,43 @@ document.addEventListener('DOMContentLoaded', function() {
             player.isJumping = true;
             player.canJump = false;
             setTimeout(() => player.canJump = true, 100);
+        }
+        // Быстрое переключение уровней для теста
+        if (e.key === '1') {
+            level = 1;
+            loadLevel(1);
+            player.x = 50;
+            player.y = 300;
+            player.velX = 0;
+            player.velY = 0;
+            gameInfo.textContent = `Уровень: 1 | Монеты: ${coins} | Жизни: ${lives}`;
+        }
+        if (e.key === '2') {
+            level = 2;
+            loadLevel(2);
+            player.x = 50;
+            player.y = 300;
+            player.velX = 0;
+            player.velY = 0;
+            gameInfo.textContent = `Уровень: 2 | Монеты: ${coins} | Жизни: ${lives}`;
+        }
+        if (e.key === '3') {
+            level = 3;
+            loadLevel(3);
+            player.x = 50;
+            player.y = 300;
+            player.velX = 0;
+            player.velY = 0;
+            gameInfo.textContent = `Уровень: 3 | Монеты: ${coins} | Жизни: ${lives}`;
+        }
+        if (e.key === '0') {
+            level = 99;
+            loadLevel(99);
+            player.x = 100;
+            player.y = 300;
+            player.velX = 0;
+            player.velY = 0;
+            gameInfo.textContent = 'Секретный уровень!';
         }
     }
 
@@ -356,12 +448,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     lives--;
                     gameInfo.textContent = `Уровень: ${level} | Монеты: ${coins} | Жизни: ${lives}`;
                     
+                    // Показываем bubble
+                    if (bubbleIndex % bubbleVariants.length === 0) {
+                        shuffleBubbleVariants();
+                    }
+                    bubbleText = bubbleVariants[bubbleIndex % bubbleVariants.length];
+                    bubbleIndex++;
+                    bubbleTimer = 40; // ~0.7 сек
+                    
                     if (lives <= 0) {
                         gameOver = true;
                         showEndScreen(false);
                     } else {
+                        // Включаем моргание (неуязвимость) на 8 раз (40 кадров)
                         invincible = true;
-                        invincibleTimer = 120;
+                        invincibleTimer = 200;
                     }
                 }
             }
@@ -381,6 +482,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 coinSound.currentTime = 0;
                 coinSound.play();
                 gameInfo.textContent = `Уровень: ${level} | Монеты: ${coins} | Жизни: ${lives}`;
+
+                // Показываем bubble при сборе монеты
+                if (coinBubbleIndex % coinBubbleVariants.length === 0) {
+                    shuffleCoinBubbleVariants();
+                }
+                coinBubbleText = coinBubbleVariants[coinBubbleIndex % coinBubbleVariants.length];
+                coinBubbleIndex++;
+                coinBubbleTimer = 40;
             }
         }
         
@@ -425,6 +534,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // Обновление врагов
     function updateEnemies() {
         for (const enemy of enemies) {
+            // Для 3 уровня: если враг стоит на движущейся платформе, двигаем его вместе с платформой
+            if (level === 3) {
+                for (let i = 1; i <= 4; i++) {
+                    const p = platforms[i];
+                    // Проверяем, стоит ли враг на платформе
+                    if (
+                        enemy.x + enemy.width/2 > p.x &&
+                        enemy.x + enemy.width/2 < p.x + p.width &&
+                        Math.abs(enemy.y + enemy.height - p.y) < 2
+                    ) {
+                        // Двигаем врага вместе с платформой
+                        enemy.y += p.speed * p.dir;
+                        // Корректируем, чтобы враг не "отставал" от платформы
+                        enemy.y = p.y - enemy.height;
+                    }
+                }
+            }
             enemy.x += enemy.speed * enemy.direction;
             
             // Разворот при достижении края платформы
@@ -516,6 +642,82 @@ document.addEventListener('DOMContentLoaded', function() {
     function draw() {
         // Очистка canvas
         ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+        
+        if (isSecretLevel) {
+            // Смешная заставка: радужный фон и смайлики
+            let grad = ctx.createLinearGradient(0, 0, BASE_WIDTH, BASE_HEIGHT);
+            grad.addColorStop(0, '#ff5e62');
+            grad.addColorStop(0.2, '#ff9966');
+            grad.addColorStop(0.4, '#f9d423');
+            grad.addColorStop(0.6, '#a1ffce');
+            grad.addColorStop(0.8, '#38d39f');
+            grad.addColorStop(1, '#5e72eb');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+            // Смайлики
+            ctx.font = '40px Arial';
+            for (let i = 0; i < 8; i++) {
+                ctx.fillText('😜', 60 + i * 90, 120 + Math.sin(animationFrame/10 + i) * 10);
+            }
+            // Монеты — рисуем ПЕРЕД надписью и платформой
+            for (const coin of coinsList) {
+                if (!coin.collected) {
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.beginPath();
+                    ctx.arc(
+                        coin.x, 
+                        coin.y - coin.bounce, 
+                        coin.width/2, 
+                        0, 
+                        Math.PI * 2
+                    );
+                    ctx.fill();
+                    ctx.fillStyle = '#f39c12';
+                    ctx.beginPath();
+                    ctx.arc(
+                        coin.x, 
+                        coin.y - coin.bounce, 
+                        coin.width/3, 
+                        0, 
+                        Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+            }
+            // Надпись
+            ctx.font = 'bold 36px Arial';
+            ctx.fillStyle = '#222';
+            ctx.textAlign = 'center';
+            ctx.fillText('Ты нашел секретный уровень', BASE_WIDTH/2, BASE_HEIGHT/2);
+            // Платформа
+            for (const platform of platforms) {
+                ctx.fillStyle = platform.color;
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+            }
+            // Главарь
+            if (boss && !bossDefeated) {
+                ctx.save();
+                ctx.fillStyle = '#8e44ad';
+                ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Босс', boss.x + boss.width/2, boss.y + boss.height/2);
+                ctx.restore();
+            }
+            if (bossDefeated) {
+                ctx.save();
+                ctx.font = 'bold 40px Arial';
+                ctx.fillStyle = '#27ae60';
+                ctx.textAlign = 'center';
+                ctx.fillText('Победа!', BASE_WIDTH/2, BASE_HEIGHT/2 + 80);
+                ctx.restore();
+            }
+            // Персонаж
+            player.draw();
+            animationFrame++;
+            return;
+        }
         
         // Фон
         if (level === 1) {
@@ -635,19 +837,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     Math.PI * 2
                 );
                 ctx.fill();
-            } else if (coin.collectAnim > 0) {
-                // Анимация сбора монеты
-                const size = coin.collectAnim;
-                ctx.fillStyle = `rgba(241, 196, 15, ${coin.collectAnim / 15})`;
-                ctx.beginPath();
-                ctx.arc(
-                    coin.x - cameraOffset + coin.width/2, 
-                    coin.y + coin.height/2 - size, 
-                    size, 
-                    0, 
-                    Math.PI * 2
-                );
-                ctx.fill();
             }
         }
         
@@ -706,12 +895,209 @@ document.addEventListener('DOMContentLoaded', function() {
         // Игрок
         player.draw();
         
+        // Bubble при уроне
+        if (bubbleTimer > 0) {
+            ctx.save();
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            const text = bubbleText;
+            const padding = 12;
+            const textWidth = ctx.measureText(text).width;
+            const bubbleWidth = textWidth + padding * 2;
+            const bubbleHeight = 36;
+            const px = player.x - cameraOffset + player.width + 10;
+            const py = player.y - 20;
+            // Bubble
+            ctx.beginPath();
+            ctx.ellipse(px + bubbleWidth/2, py + bubbleHeight/2, bubbleWidth/2, bubbleHeight/2, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'white';
+            ctx.shadowColor = '#aaa';
+            ctx.shadowBlur = 6;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            // Хвостик bubble
+            ctx.beginPath();
+            ctx.moveTo(px + 10, py + bubbleHeight - 2);
+            ctx.lineTo(px - 8, py + bubbleHeight + 10);
+            ctx.lineTo(px + 18, py + bubbleHeight - 6);
+            ctx.closePath();
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            ctx.stroke();
+            // Текст
+            ctx.fillStyle = '#222';
+            ctx.fillText(text, px + padding, py + bubbleHeight/2);
+            ctx.restore();
+        }
+        // Bubble при сборе монеты
+        if (coinBubbleTimer > 0) {
+            ctx.save();
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            const text = coinBubbleText;
+            const padding = 12;
+            const textWidth = ctx.measureText(text).width;
+            const bubbleWidth = textWidth + padding * 2;
+            const bubbleHeight = 36;
+            const px = player.x - cameraOffset - bubbleWidth - 10;
+            const py = player.y - 20;
+            // Bubble
+            ctx.beginPath();
+            ctx.ellipse(px + bubbleWidth/2, py + bubbleHeight/2, bubbleWidth/2, bubbleHeight/2, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'white';
+            ctx.shadowColor = '#aaa';
+            ctx.shadowBlur = 6;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            // Хвостик bubble
+            ctx.beginPath();
+            ctx.moveTo(px + bubbleWidth - 10, py + bubbleHeight - 2);
+            ctx.lineTo(px + bubbleWidth + 8, py + bubbleHeight + 10);
+            ctx.lineTo(px + bubbleWidth - 18, py + bubbleHeight - 6);
+            ctx.closePath();
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            ctx.stroke();
+            // Текст
+            ctx.fillStyle = '#222';
+            ctx.fillText(text, px + bubbleWidth - padding, py + bubbleHeight/2);
+            ctx.restore();
+        }
+        
         animationFrame++;
     }
     
     // Обновление игры
     function update() {
         if (gameOver) return;
+        
+        if (bubbleTimer > 0) bubbleTimer--;
+        if (coinBubbleTimer > 0) coinBubbleTimer--;
+        
+        // Секретный уровень: простая физика и управление
+        if (isSecretLevel) {
+            player.velX = 0;
+            if (keys.left) {
+                player.velX = -player.speed;
+                player.direction = -1;
+            }
+            if (keys.right) {
+                player.velX = player.speed;
+                player.direction = 1;
+            }
+            player.x += player.velX;
+            player.y += player.velY;
+            player.velY += player.gravity;
+            // Примитивная проверка платформы (чтобы не проваливался)
+            const pf = platforms[0];
+            if (pf && player.y + player.height > pf.y && player.y + player.height < pf.y + pf.height + player.velY) {
+                player.y = pf.y - player.height;
+                player.velY = 0;
+                player.isJumping = false;
+            }
+            // Не даём выйти за низ экрана
+            if (pf && player.y > BASE_HEIGHT) {
+                player.y = pf.y - player.height;
+                player.velY = 0;
+            }
+            cameraOffset = 0;
+            // Ограничение движения по платформе
+            if (pf) {
+                if (player.x < pf.x) player.x = pf.x;
+                if (player.x > pf.x + pf.width - player.width) player.x = pf.x + pf.width - player.width;
+            }
+            // Сбор монет на секретном уровне
+            for (const coin of coinsList) {
+                if (!coin.collected &&
+                    player.x < coin.x + coin.width &&
+                    player.x + player.width > coin.x &&
+                    player.y < coin.y + coin.height &&
+                    player.y + player.height > coin.y) {
+                    coin.collected = true;
+                    coins++;
+                    coinSound.currentTime = 0;
+                    coinSound.play();
+                    gameInfo.textContent = `Секретный уровень | Монеты: ${coins}`;
+                }
+            }
+            // Появление главаря
+            if (!boss && coinsList.every(c => c.collected)) {
+                boss = {
+                    x: pf.x + 10, // слева, с небольшим отступом
+                    y: pf.y - 60,
+                    width: 80,
+                    height: 60,
+                    dir: 1,
+                    speed: 2,
+                    hits: 0 // количество попаданий на голову
+                };
+                bossDefeated = false;
+                bossVictoryTimer = 0;
+            }
+            // Движение и проверка победы над главарём
+            if (boss && !bossDefeated) {
+                boss.x += boss.speed * boss.dir;
+                if (boss.x < pf.x) { boss.x = pf.x; boss.dir = 1; }
+                if (boss.x + boss.width > pf.x + pf.width) { boss.x = pf.x + pf.width - boss.width; boss.dir = -1; }
+                // Победа: прыжок на голову
+                if (
+                    player.y + player.height <= boss.y + 10 &&
+                    player.y + player.height >= boss.y - 10 &&
+                    player.x + player.width > boss.x &&
+                    player.x < boss.x + boss.width &&
+                    player.velY > 0
+                ) {
+                    boss.hits = (boss.hits || 0) + 1;
+                    player.velY = -player.jumpPower * 0.8;
+                    if (boss.hits >= 2) {
+                        bossDefeated = true;
+                        bossVictoryTimer = 120;
+                    }
+                } else {
+                    // Проверка обычного столкновения
+                    const touchingBoss =
+                        player.x < boss.x + boss.width &&
+                        player.x + player.width > boss.x &&
+                        player.y < boss.y + boss.height &&
+                        player.y + player.height > boss.y &&
+                        // не прыжок на голову
+                        !(player.y + player.height <= boss.y + 10 && player.velY > 0);
+                    if (touchingBoss) {
+                        if (!bossTouch) {
+                            lives--;
+                            gameInfo.textContent = `Секретный уровень | Монеты: ${coins} | Жизни: ${lives}`;
+                            // Показываем bubble
+                            if (bubbleIndex % bubbleVariants.length === 0) {
+                                shuffleBubbleVariants();
+                            }
+                            bubbleText = bubbleVariants[bubbleIndex % bubbleVariants.length];
+                            bubbleIndex++;
+                            bubbleTimer = 40;
+                            if (lives <= 0) {
+                                gameOver = true;
+                                showEndScreen(false);
+                            }
+                            // Включаем моргание на 8 раз (40 кадров)
+                            invincible = true;
+                            invincibleTimer = 200;
+                        }
+                        bossTouch = true;
+                    } else {
+                        bossTouch = false;
+                    }
+                }
+            }
+            if (bossDefeated && bossVictoryTimer > 0) bossVictoryTimer--;
+            return;
+        }
         
         // Обновление движения
         player.velX = 0;
@@ -729,12 +1115,12 @@ document.addEventListener('DOMContentLoaded', function() {
         player.velY += player.gravity;
         
         // Ограничение движения
-        if (player.x < 0) player.x = 0;
-        if (player.x > BASE_WIDTH - player.width) {
+        if (level !== 3 && !isSecretLevel && player.x < 0) player.x = 0;
+        if (level !== 3 && !isSecretLevel && player.x > BASE_WIDTH - player.width) {
             player.x = BASE_WIDTH - player.width;
         }
         
-        cameraOffset = Math.max(0, player.x - BASE_WIDTH / 3);
+        cameraOffset = 0;
         
         if (invincible) {
             invincibleTimer--;
@@ -743,11 +1129,47 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
+        // Движение платформы на 2 уровне
+        if (level === 2 && platforms[1] && platforms[1].moving) {
+            let p = platforms[1];
+            p.x += p.speed * p.dir;
+            if (p.x <= p.minX || p.x >= p.maxX) {
+                p.dir *= -1;
+                p.x = Math.max(p.minX, Math.min(p.x, p.maxX));
+            }
+        }
+        // Движение платформ на 3 уровне (вверх-вниз)
+        if (level === 3) {
+            for (let i = 1; i <= 4; i++) {
+                let p = platforms[i];
+                if (p.moving) {
+                    p.y += p.speed * p.dir;
+                    if (p.y <= p.minY || p.y >= p.maxY) {
+                        p.dir *= -1;
+                        p.y = Math.max(p.minY, Math.min(p.y, p.maxY));
+                    }
+                }
+            }
+        }
+        
         updateCoins();
         updateBirds();
         updateTeleport();
         checkCollisions();
         updateEnemies();
+        
+        // Переход в секретный уровень
+        if (level === 3 && !isSecretLevel && player.x < -40) {
+            isSecretLevel = true;
+            level = 99;
+            loadLevel(99);
+            player.x = 100;
+            player.y = 300;
+            player.velX = 0;
+            player.velY = 0;
+            gameInfo.textContent = 'Секретный уровень!';
+            return;
+        }
     }
     
     // Показать экран завершения
@@ -755,11 +1177,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (allCoinsCollected) {
             endScreen.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
             endMessage.style.color = '#000';
-            endMessage.textContent = 'Ты собрал все шекели и тусишь на полную катушку!';
+            endMessage.textContent = 'Ты собрал все шекели — тусишь на полную катушку!';
         } else {
             endScreen.style.backgroundColor = 'rgba(100, 100, 100, 0.9)';
             endMessage.style.color = '#fff';
-            endMessage.textContent = lives <= 0 ? 'Ты можешь лучше!' : 'Ты прошел, но не собрал всех шекелей, тусишь не на полную катушку';
+            endMessage.textContent = lives <= 0 ? 'Потрачено. Ты можешь лучше!' : 'Ты прошел, но не собрал всех шекелей — тусишь не на полную катушку';
         }
         
         endScreen.style.display = 'flex';
